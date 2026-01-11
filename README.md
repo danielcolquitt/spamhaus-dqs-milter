@@ -175,10 +175,10 @@ This project is licensed under the Mozilla Public License 2.0 (MPL-2.0).
 
 Comments, issues, and pull requests are welcome. By submitting a pull request, you agree that your contribution will be licensed under the MPL-2.0.
 
-**Please note:** this is a side project maintained in spare time. I’ll do my best to respond, but I can’t guarantee timelines or provide production support. For bug reports, please include logs (sanitised), your MTA + OS details, and steps to reproduce.
+**Please note:** this is a side project maintained in my spare time. I’ll do my best to respond, but I can’t guarantee timelines or provide production support. For bug reports, please include logs (sanitised), your MTA + OS details, and steps to reproduce.
 
-I created this milter because my MTA (not Postfix or Exim) does not have native support for rejected connections at the `CONNECT` or `MAILFROM` stages of the SMTP transaction and I could not find a compatible milter that had the necessary functionality. If such functionality exists elsewhere, please do let me know so that I can reference it here.
+I created this milter because my MTA (not Postfix or Exim) does not have native support for rejected connections at the `CONNECT`, `HELO`, or `MAILFROM` stages of the SMTP transaction and I could not find a compatible milter that had the necessary functionality. If such functionality exists elsewhere, please do let me know so that I can reference it here.
 
 ## Note on AI assistance
 
-This is a hobby project and some parts of the code and documentation were created with the help of generative AI, with manual review and testing by the author.
+This is a hobby project and I used Generative AI to help me create and/or debug parts of the code and documentation. All code and documentation were manually reviewed and, in the case of code, tested by me.
