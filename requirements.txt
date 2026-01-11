@@ -1,0 +1,2 @@
+pymilter>=1.0.2
+dnspython>=2.0.0

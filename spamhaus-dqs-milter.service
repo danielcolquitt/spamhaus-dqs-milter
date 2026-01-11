@@ -1,0 +1,58 @@
+[Unit]
+Description=Spamhaus DQS (ZEN+DBL+ZRD) domain reputation milter
+After=network-online.target
+Wants=network-online.target
+
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=simple
+
+# Run as a dedicated unprivileged user
+User=spamhausmilter
+Group=spamhausmilter
+
+# Environment file (optional; script also defaults to /etc/spamhaus-dqs-milter)
+EnvironmentFile=-/etc/spamhaus-dqs-milter.env
+
+WorkingDirectory=/opt/spamhaus-dqs-milter
+ExecStart=/opt/spamhaus-dqs-milter/venv/bin/python3 /opt/spamhaus-dqs-milter/spamhaus-dqs-milter.py
+
+# Restart behaviour
+Restart=on-failure
+RestartSec=2
+
+# Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+
+# Allow only the address families we need (TCP + DNS)
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Least privilege
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# Tighten filesystem access: allow reading config; nothing should need write access
+ReadOnlyPaths=/etc/spamhaus-dqs-milter /opt/spamhaus-dqs-milter
+# If you later add a PID file or similar, add it to ReadWritePaths=
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=spamhaus_dqs_milter
+
+[Install]
+WantedBy=multi-user.target
