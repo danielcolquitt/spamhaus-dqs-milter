@@ -419,7 +419,7 @@ def check_domain(
     try:
         dbl_codes = _query_a(dbl_q)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("DBL query ok domain=%s q=%s codes=%s", dom, dbl_q, dbl_codes)
+            logger.debug("DBL query ok domain=%s codes=%s", dom, dbl_codes)
     except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
         dbl_codes = ()
     except Exception as e:
@@ -441,7 +441,7 @@ def check_domain(
             zrd_codes = _query_a(zrd_q)
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(
-                    "ZRD query ok domain=%s q=%s codes=%s", dom, zrd_q, zrd_codes
+                    "ZRD query ok domain=%s codes=%s", dom, zrd_codes
                 )
         except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
             zrd_codes = ()
@@ -488,7 +488,7 @@ def check_ip_zen(ip: str, cfg: Config) -> Tuple[bool, Tuple[str, ...]]:
     try:
         zen_codes = _query_a(q)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("ZEN query ok ip=%s q=%s codes=%s", ip, q, zen_codes)
+            logger.debug("ZEN query ok ip=%s codes=%s", ip, zen_codes)
     except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
         zen_codes = ()
     except Exception as e:
