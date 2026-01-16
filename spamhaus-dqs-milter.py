@@ -389,6 +389,37 @@ def _reverse_ip_for_rbl(ip: str) -> Optional[str]:
     hexstr = obj.exploded.replace(":", "")
     return ".".join(reversed(hexstr))
 
+    def zrd_retry_delay_hours(zrd_codes):
+        """
+        zrd_codes: iterable of strings like '127.0.2.2' ... '127.0.2.24'
+        Returns (n, retry_hours) where n is the 4th octet and retry_hours is (25 - n), clamped to >= 1.
+
+        Rationale:
+          - Spamhaus ZRD uses 127.0.2.N where N indicates hours since first observation (bucketed).
+            (e.g. 127.0.2.2 => 0–2h ago, 127.0.2.24 => 23–24h ago)
+        """
+        ns = []
+        for c in zrd_codes or []:
+            try:
+                s = str(c).strip()
+                parts = s.split(".")
+                if len(parts) != 4:
+                    continue
+                if parts[0:3] != ["127", "0", "2"]:
+                    continue
+                n = int(parts[3])
+                if 2 <= n <= 24:
+                    ns.append(n)
+            except Exception:
+                continue
+
+        if not ns:
+            return None, None
+
+        n = min(ns)  # youngest bucket => longest suggested wait
+        retry_hours = max(1, 25 - n)
+        return n, retry_hours
+
 
 # -------------------------
 # Domain checks (DBL + ZRD)
@@ -440,9 +471,7 @@ def check_domain(
         try:
             zrd_codes = _query_a(zrd_q)
             if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(
-                    "ZRD query ok domain=%s codes=%s", dom, zrd_codes
-                )
+                logger.debug("ZRD query ok domain=%s codes=%s", dom, zrd_codes)
         except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
             zrd_codes = ()
         except Exception as e:
@@ -588,13 +617,25 @@ class SpamhausDQSMilter(Milter.Base):
         dbl_reject, zrd_reject, dbl_codes, zrd_codes = check_domain(helo_dom, self.cfg)
 
         if zrd_reject:
-            logger.info("REJECT HELO: ZRD domain=%s codes=%s", helo_dom, zrd_codes)
-            self.setreply(
-                "550",
-                "5.7.1",
-                "Policy rejection: HELO domain has no established reputation.",
+            n, retry_hours = zrd_retry_delay_hours(zrd_codes)
+            if retry_hours is None:
+                msg = "Temporary deferral: HELO domain has no established reputation. Please try again later."
+            else:
+                msg = (
+                    "Temporary deferral: HELO domain has no established reputation. "
+                    f"Please try again in {retry_hours} hour{'s' if retry_hours != 1 else ''}."
+                )
+
+            logger.info(
+                "TEMPFAIL HELO: ZRD domain=%s codes=%s n=%s retry_hours=%s",
+                helo_dom,
+                zrd_codes,
+                n,
+                retry_hours,
             )
-            return Milter.REJECT
+
+            self.setreply("451", "4.7.1", msg)
+            return Milter.TEMPFAIL
 
         if dbl_reject:
             logger.info("REJECT HELO: DBL domain=%s codes=%s", helo_dom, dbl_codes)
@@ -624,13 +665,25 @@ class SpamhausDQSMilter(Milter.Base):
         dbl_reject, zrd_reject, dbl_codes, zrd_codes = check_domain(dom, self.cfg)
 
         if zrd_reject:
-            logger.info("REJECT MAILFROM: ZRD domain=%s codes=%s", dom, zrd_codes)
-            self.setreply(
-                "550",
-                "5.7.1",
-                "Policy rejection: sender domain has no established reputation.",
+            n, retry_hours = zrd_retry_delay_hours(zrd_codes)
+            if retry_hours is None:
+                msg = "Temporary deferral: sender domain has no established reputation. Please try again later."
+            else:
+                msg = (
+                    "Temporary deferral: sender domain has no established reputation. "
+                    f"Please try again in {retry_hours} hour{'s' if retry_hours != 1 else ''}."
+                )
+
+            logger.info(
+                "TEMPFAIL MAILFROM: ZRD domain=%s codes=%s n=%s retry_hours=%s",
+                dom,
+                zrd_codes,
+                n,
+                retry_hours,
             )
-            return Milter.REJECT
+
+            self.setreply("451", "4.7.1", msg)
+            return Milter.TEMPFAIL
 
         if dbl_reject:
             logger.info("REJECT MAILFROM: DBL domain=%s codes=%s", dom, dbl_codes)
